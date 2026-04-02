@@ -1,0 +1,19 @@
+syntax = "proto3";
+option go_package = "./pb";
+package analysis;
+
+message StockRequest {
+  string stock_code = 1;
+}
+
+// 单个分析结果（比如某一天的）
+message AnalysisResult {
+  string date = 1;
+  float price = 2;
+  string sentiment = 3; // AI 对当天的情绪分析
+}
+
+service StockAnalyzer {
+  // 服务端流式：一个请求，返回一个结果流
+  rpc GetHistoryAnalysis (StockRequest) returns (stream AnalysisResult);
+}

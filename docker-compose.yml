@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Python AI 算力节点
+  ai-service:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      # 将宿主机的模型缓存目录 映射到 容器内的缓存目录
+      - ${AI_MODELS_PATH:-./ai_models}:/root/.cache/huggingface
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      # - HF_ENDPOINT=https://hf-mirror.com # (可选) 国内加速镜像站
+    networks:
+      - stock-net
+    # 限制容器资源，防止 AI 任务把宿主机跑死
+    deploy:
+      replicas: 3 # 核心：启动 3 个副本，平摊计算压力
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Go API 网关
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.go
+    ports:
+      - "8081:8081" # 将容器的 8081 映射到 Win11 的 8081
+    environment:
+      - GRPC_SERVER_ADDR=dns:///ai-service:50051 # 关键：在 Docker 网络中直接用服务名访问
+    depends_on:
+      - ai-service
+    networks:
+      - stock-net
+
+networks:
+  stock-net:
+    driver: bridge

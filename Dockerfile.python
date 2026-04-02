@@ -1,0 +1,22 @@
+# 使用轻量级 Python 镜像
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# 禁用 Python 输出缓冲，确保日志实时显示到 docker logs
+ENV PYTHONUNBUFFERED=1
+
+# 提前复制 requirements.txt 并安装依赖（充分利用 Docker 缓存）
+COPY requirements.txt .
+RUN pip install --default-timeout=1000 --retries 5 --no-cache-dir -r requirements.txt
+
+# 复制协议文件和代码
+COPY analysis.proto .
+COPY ai_service.py .
+
+# 生成 Python 的 gRPC 代码
+RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. analysis.proto
+
+EXPOSE 50051
+
+CMD ["python", "ai_service.py"]

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>📈 AI 股票分析实时流 - DEMO</h2>
+    <div id="output" style="border:1px solid #ccc; padding:10px; height:400px; overflow-y:auto; font-family:monospace"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        const socket = new WebSocket('ws://localhost:8081/ws/analysis');
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const line = document.createElement('p');
+            line.innerHTML = `📅 ${data.date} | 💰 价格: ${data.price} | 🤖 AI: <b style="color:green">${data.sentiment}</b>`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight; // 自动滚动
+        };
+
+        socket.onclose = () => {
+            const end = document.createElement('p');
+            end.innerText = "🏁 分析完成。";
+            output.appendChild(end);
+        };
+    </script>
+</body>
+</html>
