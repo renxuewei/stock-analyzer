@@ -1,8 +1,8 @@
-# Stock Analyzer - 金融股票情感分析系统
+# Stock Analyzer - 金融股票情感分析系统(DEMO)
 
 ## 📋 项目描述
 
-这是一个**分布式微服务架构**的金融股票实时情感分析系统。系统采用 **Go + Python + gRPC** 的技术栈，实现高效的流式数据处理：
+这是一个**分布式微服务架构**的金融股票实时情感分析演示系统。采用 **Go + Python + gRPC** 的技术栈，实现高效的流式数据处理：
 
 - **Go 网关**：通过 WebSocket 为前端提供实时数据推送，支持成千上万的并发连接
 - **Python AI 服务**：使用 FinBERT 深度学习模型进行金融文本的情感分析（利好/利空/中性）
@@ -18,14 +18,14 @@
 ### 数据流向
 
 ```
-┌─────────────┐         ┌────────────────────────┐         ┌──────────────────┐
-│  Web 前端   │ ◄─── WS ──► │ Go 网关 (gateway)    │ ◄─── DNS gRPC ──► │ Python AI Pod ×3 │
-│ (WebSocket) │ (JSON)      │ (Port 8081)          │ (Round Robin)      │ (Port 50051)     │
-└─────────────┘         └────────────────────────┘         └──────────────────┘
-                              ▲                                      ▲
-                              │                                      │
-                        限流控制 (5 req/s)                    模型加载 × 3 副本
-                        令牌桶算法                            FinBERT + 缓存
+┌─────────────┐            ┌────────────────────────┐                    ┌──────────────────┐
+│  Web 前端   │ ◄─── WS ──► │ Go 网关 (gateway)      │ ◄─── DNS gRPC ──►  │ Python AI Pod ×3 │
+│ (WebSocket) │ (JSON)     │ (Port 8081)            │ (Round Robin)      │ (Port 50051)     │
+└─────────────┘            └────────────────────────┘                    └──────────────────┘
+                                        ▲                                         ▲
+                                        │                                         │
+                                  限流控制 (5 req/s)                       模型加载 × 3 副本
+                                  令牌桶算法                               FinBERT + 缓存
 ```
 
 ### 核心模块
@@ -80,10 +80,6 @@ Python AI 服务（3 个副本）：
 - **资源限制**（Docker）：3 个 AI 副本，每个独立占用 1 核 CPU + 1GB 内存，自动负载均衡
 - **模型缓存管理**：支持本地卷映射，避免每次启动重下 400MB 模型
 
-### 6️⃣ **开发友好**
-- WebSocket + JSON：前端无需关心 gRPC 协议细节
-- Protocol Buffer：跨平台数据序列化，支持版本演进
-- Windows 本地开发支持：直接 `pip install torch` 获得 CPU 加速
 
 ---
 
@@ -91,9 +87,7 @@ Python AI 服务（3 个副本）：
 
 ### 前置条件
 
-- **Docker & Docker Compose**：[安装指南](https://docs.docker.com/compose/install/)
-- **Git**（用于 clone 项目）
-- **可选**：Windows 10/11（此项目已在 Windows 11 验证）
+- **Docker & Docker Compose**
 
 ### 快速启动（推荐）
 
@@ -105,29 +99,7 @@ cd stock-analyzer
 # ✅ 自动启动：1 个 gateway + 3 个 ai-service 副本
 docker-compose up --build -d
 
-# 3. 查看服务状态（包括 3 个 AI 副本）
-docker-compose ps
-
-# 输出示例：
-# NAME                    COMMAND              SERVICE      STATUS      PORTS
-# stock-analyzer-ai-service-1  "python ai_service…" ai-service   Up 2 mins   
-# stock-analyzer-ai-service-2  "python ai_service…" ai-service   Up 2 mins   
-# stock-analyzer-ai-service-3  "python ai_service…" ai-service   Up 2 mins   
-# stock-analyzer-gateway-1      "./gateway"          gateway      Up 2 mins   0.0.0.0:8081->8081/tcp
-
-# 4. 查看所有 AI 副本实时日志
-docker-compose logs -f ai-service
-
-# 预期输出（3 个副本并行输出）：
-# ai-service-1 | 来自容器 1a2b3c4d 的 AI 节点正在处理请求...
-# ai-service-2 | 来自容器 5e6f7g8h 的 AI 节点正在处理请求...
-# ai-service-3 | 来自容器 9i0j1k2l 的 AI 节点正在处理请求...
-# ai-service-1 | 正在加载 AI 模型，请稍候...
-# ai-service-1 | ✅ 模型加载完成！
-```
-
 ### 模型缓存管理
-
 第一次启动时，ai-service 会下载 FinBERT 模型（约 400MB）。为了避免重复下载，docker-compose 已配置本地卷映射：
 
 ```bash
@@ -380,14 +352,14 @@ grpcurl -plaintext localhost:50051 list
 请求流向图：
 ┌─────────────┐
 │ WebSocket   │
-│  客户端×100 │
+│ 客户端×100  │
 └──────┬──────┘
        │
        ▼
-┌──────────────────────┐
-│  Go 网关  (1副本)    │
-│ Round-Robin LB       │
-└────────┬─────┬──────┘
+┌────────────────────┐
+│  Go 网关  (1副本)   │
+│ Round-Robin LB     │
+└────────┬─────┬─────┘
          │     │
     ┌────▼─┐   └────┬────┐
     │DNS   │        │    │ (resolve)
@@ -497,12 +469,6 @@ A: 首次下载 FinBERT 模型 (~400MB) 较慢。几个解决方案：
 - 启用国内镜像：`HF_ENDPOINT=https://hf-mirror.com`
 - 提前在宿主机下载模型到 `./ai_models`
 
-**Q: DNS 解析失败（连接被拒绝）？**  
-A: 检查以下几点：
-- 确保使用 `dns:///ai-service:50051` 而非 `localhost`
-- Docker Compose 是否正常启动：`docker-compose ps`
-- 查看 gateway 日志：`docker logs stock-analyzer-gateway-1`
-
 **Q: 如何在本地开发中使用 DNS 模式？**  
 A: 本地开发建议使用 `localhost:50051`（单机模式）。如需测试 DNS 负载均衡，必须通过 Docker 运行。
 
@@ -529,25 +495,8 @@ docker-compose logs -f ai-service
 
 ---
 
-## 🌟 实际应用案例
-
-这套架构非常适合以下场景：
-
-1. **金融行情分析 App**：7x24 爬取新闻，实时情感分析推送到移动端
-2. **舆情监测系统**：监测特定企业，快速发现负面新闻
-3. **多语言支持**：用不同的 BERT 模型替换，支持中文/日文/韩文分析
-4. **A/B 测试框架**：通过多个 Python 服务交替调用不同模型版本
-
----
-
 ## 📝 许可证与贡献
 
 此项目为教学演示项目，欢迎 Fork 和 Pull Request。
 
 ---
-
-## 📞 获取帮助
-
-- 查看服务日志：`docker-compose logs [service-name]`
-- 重启单个服务：`docker-compose restart gateway` 或 `docker-compose restart ai-service`
-- 完全重建：`docker-compose up --build --force-recreate -d`
