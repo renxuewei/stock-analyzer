@@ -148,7 +148,7 @@ go run gateway.go
 # 🌐 网关已启动: ws://localhost:8081/ws/analysis
 ```
 
-然后在浏览器打开 [test_client.html](test_client.html)（使用本地 http-server 或直接打开文件）。
+然后在浏览器打开 [client_demo.html](client_demo.html)（使用本地 http-server 或直接打开文件）。
 
 ### 停止服务
 
@@ -172,7 +172,7 @@ docker-compose down -v
    ```
    http://localhost:8081/ws/analysis
    ```
-   或直接在浏览器中打开 [test_client.html](test_client.html)
+   或直接在浏览器中打开 [client_demo.html](client_demo.html)
 
 3. **观察数据流**
    - 页面连接到 WebSocket 端点
